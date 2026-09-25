@@ -1,12 +1,12 @@
 package com.affan.frontend.objects;
 
+import com.affan.frontend.objects.bullets.Bullet;
 import com.affan.frontend.objects.enemies.Enemy;
 import com.affan.frontend.objects.items.Item;
+import com.affan.frontend.objects.items.ItemType;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;
 import com.badlogic.gdx.graphics.Color;
-import com.affan.frontend.objects.items.ItemType;
-
 
 public class Player extends GameObject {
     private String name;
@@ -77,46 +77,35 @@ public class Player extends GameObject {
     }
 
     public void collectItem(Item item) {
+        if (item.isDestroyed()) return;
         ItemType type = item.getItemTypeEnum();
         if (type != null) {
             switch (type) {
                 case POWER -> {
-                    // 1. Increase power by type.getPowerBonus() via this.power
                     this.power += type.getPowerBonus();
-                    // 2. Add score by item.getScoreValue() via addScore() (addScore() already automatically prints "gained X pts!")
                     addScore(item.getScoreValue());
-                    // 3. Print: [name] collected POWER item! Power increased to [power]
-                    System.out.println(name + "collected POINT item");
-                    System.out.println(name + "collected POWER item power incresed to " + power);
-
+                    System.out.println(name + " collected POWER item! Power increased to " + power);
                 }
                 case POINT -> {
-                    // 1. Add score by item.getScoreValue() via addScore()
                     addScore(item.getScoreValue());
-                    // 2. Print: [name] collected POINT item!
+                    System.out.println(name + " collected POINT item!");
                 }
                 case BOMB -> {
-                    // 1. Increase spellCards by 1
                     spellCards += 1;
-                    // 2. Add score by item.getScoreValue() via addScore()
                     addScore(item.getScoreValue());
-                    // 3. Print: [name] collected BOMB item! SpellCards: [spellCards]
-                    System.out.println(name + "collected BOMB item! Spellcards: " + spellCards);
-
+                    System.out.println(name + " collected BOMB item! SpellCards: " + spellCards);
                 }
                 case LIFE -> {
-                    // 1. Increase hp by 20
                     hp += 20;
-                    // 2. Add score by item.getScoreValue() via addScore()
                     addScore(item.getScoreValue());
-                    // 3. Print: [name] collected LIFE item! HP: [hp]
-                    System.out.println(name + "collected LIFE item! HP: " + hp);
+                    System.out.println(name + " collected LIFE item! HP: " + hp);
                 }
             }
         } else {
             addScore(item.getScoreValue());
             System.out.println(name + " collected " + item.getItemType() + "!");
         }
+        item.destroy();
     }
 
     public void takeDamage(int damage) {
@@ -137,30 +126,29 @@ public class Player extends GameObject {
         }
     }
 
+    public Bullet shootBullet() {
+        int damage = 10 + power;
+        System.out.println(name + " shoots bullet dealing " + damage + " DMG!");
+        return new Bullet(x + width / 2f - 4, y + height, BulletType.AMULET, damage);
+    }
+
     public boolean isAlive() {
         return getHp() > 0;
     }
+
+
     @Override
     public void update(float delta) {
         if (Gdx.input != null) {
-            // TODO: Check W / UP input   → y += 200f * delta
-            if(Gdx.input.isKeyPressed(Input.Keys.W) || Gdx.input.isKeyPressed(Input.Keys.UP) )
-            {
+            if (Gdx.input.isKeyPressed(Input.Keys.W) || Gdx.input.isKeyPressed(Input.Keys.UP)) {
                 y += speed * delta;
-            }
-            // TODO: Check S / DOWN input → y -= 200f * delta
-            else if (Gdx.input.isKeyPressed(Input.Keys.S) || Gdx.input.isKeyPressed(Input.Keys.DOWN) )
-            {
+            } else if (Gdx.input.isKeyPressed(Input.Keys.S) || Gdx.input.isKeyPressed(Input.Keys.DOWN)) {
                 y -= speed * delta;
             }
-            // TODO: Check A / LEFT input → x -= speed * delta
-            else if (Gdx.input.isKeyPressed(Input.Keys.A) || Gdx.input.isKeyPressed(Input.Keys.LEFT))
-            {
+
+            if (Gdx.input.isKeyPressed(Input.Keys.A) || Gdx.input.isKeyPressed(Input.Keys.LEFT)) {
                 x -= speed * delta;
-            }
-            // TODO: Check D / RIGHT input → x += speed * delta
-            else if (Gdx.input.isKeyPressed(Input.Keys.D) || Gdx.input.isKeyPressed(Input.Keys.RIGHT))
-            {
+            } else if (Gdx.input.isKeyPressed(Input.Keys.D) || Gdx.input.isKeyPressed(Input.Keys.RIGHT)) {
                 x += speed * delta;
             }
         }
@@ -168,14 +156,9 @@ public class Player extends GameObject {
 
     @Override
     public void onCollision(Collidable other) {
-        // TODO: Check whether the other received by this method is an Item
         if (other instanceof Item) {
-
-            // TODO: Print "Player touches items" then call collectItem((Item) other)
             System.out.println("Player touches items");
-
             collectItem((Item) other);
         }
     }
-
 }

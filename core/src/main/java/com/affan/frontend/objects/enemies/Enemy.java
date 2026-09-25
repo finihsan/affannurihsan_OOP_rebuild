@@ -55,19 +55,17 @@ public class Enemy extends GameObject {
     }
 
     public boolean takeDamage(int damage) {
-        if (getHp() <= 0) {
-            return false;
+        boolean wasAlive = isAlive();
+        this.hp -= damage;
+        if (this.hp < 0) {
+            this.hp = 0;
         }
-
-        setHp(getHp() - damage);
-
-        System.out.println(getName() + " took " + damage + " damage! HP: " + getHp() + "/" + getMaxHp());
-
-        if (getHp() == 0) {
-            System.out.println(getName() + " was defeated!");
+        System.out.println(name + " took " + damage + " damage! HP: " + this.hp + "/" + this.maxHp);
+        if (wasAlive && this.hp == 0) {
+            System.out.println(name + " was defeated!");
+            destroy();
             return true;
         }
-
         return false;
     }
 

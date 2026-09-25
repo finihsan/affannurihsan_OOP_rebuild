@@ -2,7 +2,6 @@ package com.affan.frontend.objects.enemies;
 
 import com.affan.frontend.objects.Collidable;
 import com.affan.frontend.objects.Player;
-import com.affan.frontend.objects.items.Item;
 import com.badlogic.gdx.graphics.Color;
 
 public class Fairy extends Enemy {
@@ -18,9 +17,7 @@ public class Fairy extends Enemy {
     @Override
     public void onCollision(Collidable other) {
         if (other instanceof Player) {
-
             System.out.println("Player touches fairy");
         }
     }
 }
-

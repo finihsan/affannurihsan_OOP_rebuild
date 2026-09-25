@@ -6,6 +6,7 @@ import com.affan.frontend.objects.enemies.Enemy;
 import com.affan.frontend.objects.enemies.Fairy;
 import com.affan.frontend.objects.items.Item;
 import com.affan.frontend.objects.items.ItemType;
+import com.affan.frontend.objects.bullets.Bullet;
 
 public class Test {
     public static void main(String[] args) {
@@ -58,5 +59,6 @@ public class Test {
         System.out.println("Final Score: " + reimu2.getScore() + " pts");
 
         System.out.println("\n=== Module 2 Test Completed Successfully ===");
+
     }
 }
