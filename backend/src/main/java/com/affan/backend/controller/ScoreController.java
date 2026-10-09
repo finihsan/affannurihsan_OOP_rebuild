@@ -48,14 +48,14 @@ public class ScoreController {
     @GetMapping
     public ResponseEntity<List<Score>> getAllScores() {
         // 2. Use scoreService to call getAllScores() and store those scores in a variable using List
-        List<Score> Scorelist =  scoreService.getAllScores();
         // 3. Return the variable containing those scores
-        return ResponseEntity.ok(Scorelist);
+        List<Score> scores = scoreService.getAllScores();
+        return ResponseEntity.ok(scores);
     }
 
     // TODO:
 // 1. Add the appropriate annotation for a GET endpoint along with the appropriate endpoint
-    @GetMapping
+    @GetMapping("/leaderboard")
     public  ResponseEntity<List<Score>> getLeaderboardByPoint(@RequestParam (defaultValue = "10") Integer limit){
 	/* 2. add the '@RequestParam' parameter with defaultValue 10
 	   3. as well as Integer limit */
@@ -67,34 +67,35 @@ public class ScoreController {
     }
     // TODO:
 // 1. Add the appropriate annotation for a GET endpoint along with the appropriate endpoint
-    @GetMapping
+    @GetMapping("/above/{minValue}")
     public ResponseEntity<List<Score>> getScoresAboveValue( @PathVariable Integer minValue
         /* 2. add '@PathVariable' for Integer minValue*/){
         // 3. Use scoreService to call getScoreAboveValue() with the appropriate parameter
         //    and store those scores in a variable using List
-        List<Score> Scorelist = scoreService.getLeaderboard(limit);
         // 4. Return the variable containing those scores
-        return ResponseEntity.ok(Scorelist);
+        List<Score> scores = scoreService.getScoreAboveValue(minValue);
+        return ResponseEntity.ok(scores);
     }
     // TODO:
 // 1. Add the appropriate annotation for a GET endpoint along with the appropriate endpoint
-    @GetMapping
+    @GetMapping("/recent")
     public ResponseEntity<List<Score>> getRecentScores(){
         // 2. Use scoreService to call getRecentScores() with the appropriate parameter
         //    and store those scores in a variable using List
-        List<Score> Scorelist = scoreService.getRecentScores();
         // 3. Return the variable containing those scores
-        return ResponseEntity.ok(Scorelist);
+            List<Score> scores = scoreService.getRecentScores();
+            return ResponseEntity.ok(scores);
     }
     // TODO:
 // 1. Add the appropriate annotation for a DELETE endpoint along with the appropriate endpoint
-    @DeleteMapping
-    public  ResponseEntity<?> deleteScore(@PathVariable UUID scoreId){
+    @DeleteMapping("/{scoreId}")
+    public  ResponseEntity<?> deleteScore(@PathVariable UUID scoreId) {
         // 3. create a try-catch block
         try {
             scoreService.deleteScore(scoreId);
-            return ResponseEntity.ok("{\"message\": \"Creature deleted successfully\"}");
-        } catch(RuntimeException e) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND)  .body("{\"error\": \"" + e.getMessage() + "\"}");
+            return ResponseEntity.ok("Score with ID " + scoreId + " was successfully deleted");
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
         }
+    }
 }

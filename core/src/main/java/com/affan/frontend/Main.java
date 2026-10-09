@@ -6,8 +6,11 @@ import com.affan.frontend.objects.enemies.Boss;
 import com.affan.frontend.objects.enemies.Fairy;
 import com.affan.frontend.objects.items.Item;
 import com.affan.frontend.objects.items.ItemType;
+import com.affan.frontend.systems.AssetManager;
+import com.affan.frontend.systems.EntityFactory;
 import com.badlogic.gdx.ApplicationAdapter;
 import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.badlogic.gdx.utils.ScreenUtils;
 import java.util.ArrayList;
@@ -18,6 +21,7 @@ import java.util.Iterator;
 public class Main extends ApplicationAdapter {
     private ShapeRenderer shapeRenderer;
 
+    private SpriteBatch spriteBatch;
     private Player player;
     private Fairy fairy;
     private Boss boss;
@@ -29,33 +33,39 @@ public class Main extends ApplicationAdapter {
     public void create() {
         shapeRenderer = new ShapeRenderer();
         entities = new ArrayList<>();
+        spriteBatch = new SpriteBatch();
+        batch = new SpriteBatch();
 
         player = new Player("Reimu Hakurei", 100, 15, 3);
         fairy = new Fairy("Stage 1 Fairy", 20);
         boss = new Boss("Cirno (Stage 2 Boss)", 150);
 
+
         powerItem = new Item(200, 450, 16, 16, 80f, ItemType.POWER, 500L);
         pointItem = new Item(320, 480, 12, 12, 120f, ItemType.POINT, 1000L);
 
+        AssetManager.getInstance().init();
+
         entities.add(player);
-        entities.add(fairy);
+        entities.add(Redfairy);
+        entities.add(Bluefairy);
         entities.add(boss);
         entities.add(pointItem);
         entities.add(powerItem);
+
+        fairy = new ArrayList<>();
+        entities = new ArrayList<>();
+
+        player = EntityFactory.createPlayer(280, 40, "Reimu Hakurei", 100, 15, 3);
+        fairy Redfairy = EntityFactory.createFairy(150, 380, "Red Fairy", 20);
+        fairy Bluefairy = EntityFactory.createFairy(250, 380, "Blue Fairy", 20, "fairy_idle_blue");
+        boss = EntityFactory.createBoss(380, 400, "Rumia", 150);
+        pointItem = EntityFactory.createItem(200, 450, ItemType.POWER);
+        pointItem = EntityFactory.createItem(320, 480, ItemType.POINT);
+
+
     }
 
-    public <T extends GameObject> void updateAndClean(List<T> list, float delta, float screenWidth, float screenHeight) {
-        // 1. Get an Iterator<T> from the given list.
-        Iterator<T> iterator = list.iterator();
-        // 2. While there are still elements available (hasNext()):
-        //    a. Get the current element using next() and store it in a variable of type T.
-        //    b. Call update(delta) on the element.
-        //    c. If the element is off-screen (isOffScreen(screenWidth, screenHeight))
-        //       OR isDestroyed():
-        //       - Display the message: "Removed via Generic Iterator: " + [entity class name, using getClass().getSimpleName()]
-        //       - Remove the element from the list using the Iterator's method
-        //         (NOT list.remove()!).
-    }
 
     @Override
     public void render() {
@@ -65,7 +75,7 @@ public class Main extends ApplicationAdapter {
         // to the entities list.
         // Clue: Gdx.input.isKeyJustPressed()
         if (Gdx.input.isKeyJustPressed(Input.Keys.Z)) {
-        player.shootBullet();
+            player.shootBullet();
         }
 
         // TODO 2: Call updateAndClean(entities, delta, Gdx.graphics.getWidth(), Gdx.graphics.getHeight())
@@ -95,5 +105,34 @@ public class Main extends ApplicationAdapter {
             entity.render(shapeRenderer);
         }
         shapeRenderer.end();
+        ScreenUtils.clear(0.1f, 0.1f, 0.15f, 1f);
+        batch.begin();
+        for (GameObject entity : entities) {
+            if (!entity.isDestroyed()) {
+                entity.render(spriteBatch);
+            }
+        }
+        batch.end();
+    }
+
+    public <T extends GameObject> void updateAndClean(List<T> list, float delta, float screenWidth, float screenHeight) {
+        // 1. Get an Iterator<T> from the given list.
+        Iterator<T> iterator = list.iterator();
+        // 2. While there are still elements available (hasNext()):
+        //    a. Get the current element using next() and store it in a variable of type T.
+        //    b. Call update(delta) on the element.
+        //    c. If the element is off-screen (isOffScreen(screenWidth, screenHeight))
+        //       OR isDestroyed():
+        //       - Display the message: "Removed via Generic Iterator: " + [entity class name, using getClass().getSimpleName()]
+        //       - Remove the element from the list using the Iterator's method
+        //         (NOT list.remove()!).
+    }
+
+    @Override
+    public void dispose() {
+        if (batch != null) {
+            batch.dispose();
+        }
+        AssetManager.getInstance().dispose();
     }
 }

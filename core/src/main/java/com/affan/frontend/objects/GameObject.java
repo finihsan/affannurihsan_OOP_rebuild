@@ -13,6 +13,10 @@ public abstract class GameObject implements Collidable {
     protected Color color;
     protected boolean active = true;
 
+    protected TextureRegion sprite;
+    protected Animation<TextureRegion> animation;
+    protected float stateTime = 0f;
+
     public GameObject(float x, float y, float width, float height, float speed, Color color) {
         this.x = x;
         this.y = y;
@@ -23,6 +27,9 @@ public abstract class GameObject implements Collidable {
     }
 
     public void update(float delta) {
+        if (active) {
+            stateTime += delta;
+        }
     }
 
     public void render(ShapeRenderer shapeRenderer) {
