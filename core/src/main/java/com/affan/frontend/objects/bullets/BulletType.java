@@ -1,4 +1,4 @@
-package com.affan.frontend.objects;
+package com.affan.frontend.objects.bullets;
 
 public enum BulletType {
     DANMAKU,

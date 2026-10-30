@@ -14,11 +14,6 @@ public enum ItemType {
         this.powerBonus = powerBonus;
     }
 
-    public long getScoreValue() {
-        return scoreValue;
-    }
-
-    public int getPowerBonus() {
-        return powerBonus;
-    }
+    public long getScoreValue() { return scoreValue; }
+    public int getPowerBonus() { return powerBonus; }
 }
