@@ -6,6 +6,8 @@ import com.badlogic.gdx.Input;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.utils.ScreenUtils;
 import com.affan.frontend.systems.AssetManager;
+import com.affan.frontend.systems.BulletManager;
+import com.affan.frontend.systems.CollisionReferee;
 import com.affan.frontend.systems.EntityFactory;
 import com.affan.frontend.objects.GameObject;
 import com.affan.frontend.objects.Player;
@@ -28,24 +30,60 @@ public class Main extends ApplicationAdapter {
     private Item pointItem;
     private List<GameObject> entities;
 
+    private BulletManager bulletManager;
+    private CollisionReferee collisionReferee;
+    private float enemyShootTimer = 0f;
+
     @Override
     public void create() {
         batch = new SpriteBatch();
         fairy = new ArrayList<>();
         entities = new ArrayList<>();
 
+        bulletManager = new BulletManager();
+        collisionReferee = new CollisionReferee();
+
         // 1. Centralized Asset Registration (AssetManager Singleton + Flyweight)
         AssetManager.getInstance().init();
 
         // 2. Instantiate entities via Factory Pattern (EntityFactory)
-        player = EntityFactory.createPlayer(280, 40, "Reimu Hakurei", 100, 15, 3);
+        player = EntityFactory.createPlayer(200, 50, "Reimu Hakurei", 100, 15, 3);
         fairy.add(EntityFactory.createFairy(150, 380, "Red Fairy", 20));
         fairy.add(EntityFactory.createFairy(250, 380, "Blue Fairy", 20, "fairy_idle_blue"));
-        boss = EntityFactory.createBoss(380, 400, "Rumia", 150);
-        powerItem = EntityFactory.createItem(200, 450, ItemType.POWER);
-        pointItem = EntityFactory.createItem(320, 480, ItemType.POINT);
+        boss = EntityFactory.createBoss(250, 400, "Rumia", 150);
+        powerItem = EntityFactory.createItem(180, 450, ItemType.POWER);
+        pointItem = EntityFactory.createItem(220, 480, ItemType.POINT);
 
         entities.add(player);
+        entities.addAll(fairy);
+        entities.add(boss);
+        entities.add(powerItem);
+        entities.add(pointItem);
+    }
+
+    private void updateEnemyScheduler(float delta) {
+        enemyShootTimer += delta;
+        if (enemyShootTimer >= 1.5f) {
+            boss.shootBullet(bulletManager);
+            enemyShootTimer = 0f;
+        }
+    }
+
+    private void restartGame() {
+        System.out.println("[Main] Restarting game...");
+        entities.clear();
+        bulletManager.clearEnemyBullets();
+        bulletManager.clearPlayerBullets();
+        entities.add(player);
+        player.resetGame();
+
+        fairy.clear();
+        fairy.add(EntityFactory.createFairy(150, 380, "Red Fairy", 20));
+        fairy.add(EntityFactory.createFairy(250, 380, "Blue Fairy", 20, "fairy_idle_blue"));
+        boss = EntityFactory.createBoss(250, 400, "Rumia", 150);
+        powerItem = EntityFactory.createItem(180, 450, ItemType.POWER);
+        pointItem = EntityFactory.createItem(220, 480, ItemType.POINT);
+
         entities.addAll(fairy);
         entities.add(boss);
         entities.add(powerItem);
@@ -58,37 +96,32 @@ public class Main extends ApplicationAdapter {
 
         // 1. Check Player Bullet shooting input (Key Z)
         if (Gdx.input.isKeyJustPressed(Input.Keys.Z)) {
-            entities.add(player.shootBullet());
+            player.shootBullet(bulletManager);
         }
 
-        // 2. Generic update & safe removal of off-screen/destroyed entities using updateAndClean<T>()
+        // 2. Periodic firing scheduler for Boss Rumia
+        updateEnemyScheduler(delta);
+
+        // 3. Generic update & safe removal of standard entities (Player, Enemy, Item)
         updateAndClean(entities, delta, Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
 
-        // 3. Collision detection between active entities
-        for (int i = 0; i < entities.size(); i++) {
-            for (int j = i + 1; j < entities.size(); j++) {
-                GameObject a = entities.get(i);
-                GameObject b = entities.get(j);
+        // 4. Update and recycle Object Pool
+        bulletManager.update(delta, Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
 
-                if (!a.isDestroyed() && !b.isDestroyed()) {
-                    if (a.getCoreHitbox().overlaps(b.getCoreHitbox())) {
-                        a.onCollision(b);
-                        b.onCollision(a);
-                    }
-                }
-            }
-        }
+        // 5. Evaluate & resolve all collisions via Mediator Pattern
+        collisionReferee.resolveCollisions(player, entities, bulletManager);
 
-        // 4. Clear screen
+        // 6. Clear screen
         ScreenUtils.clear(0.1f, 0.1f, 0.15f, 1f);
 
-        // 5. Render active entity sprites/animations with SpriteBatch
+        // 7. Render active entity sprites and pooled bullets with SpriteBatch
         batch.begin();
         for (GameObject entity : entities) {
             if (!entity.isDestroyed()) {
                 entity.render(batch);
             }
         }
+        bulletManager.render(batch);
         batch.end();
     }
 
