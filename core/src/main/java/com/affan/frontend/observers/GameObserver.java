@@ -8,4 +8,3 @@ public interface GameObserver {
     void onGrazeChanged(int currentGraze);
     default void onLivesChanged(int currentLives) {}
 }
-

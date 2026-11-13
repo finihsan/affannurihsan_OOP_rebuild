@@ -17,82 +17,46 @@ public class CollisionReferee {
 
         List<GameObject> newDrops = new ArrayList<>();
 
-        // 1. Evaluate Player Bullets vs Enemies (Question 3)
+        // 1. Mediator checks Player Bullets vs Enemies (Core Hitbox)
         for (Bullet bullet : bulletManager.getActivePlayerBullets()) {
             if (bullet.isDestroyed()) continue;
 
             for (GameObject entity : entities) {
                 if (entity instanceof Enemy enemy && !enemy.isDestroyed()) {
                     if (bullet.getCoreHitbox().overlaps(enemy.getCoreHitbox())) {
+                        System.out.println("[CollisionReferee] Player Bullet hit " + enemy.getName() + " for " + bullet.getDamage() + " DMG!");
                         boolean defeated = enemy.takeDamage(bullet.getDamage());
                         if (defeated) {
                             player.addScore(enemy.getScoreValue());
-                            newDrops.add(EntityFactory.createItem(enemy.getX(), enemy.getY(), ItemType.POWER));
+                            Item drop = EntityFactory.createItem(enemy.getX(), enemy.getY(), ItemType.POWER);
+                            newDrops.add(drop);
+                            System.out.println("[CollisionReferee] Defeated " + enemy.getName() + "! Dropped POWER item at (" + enemy.getX() + ", " + enemy.getY() + ")");
                         }
-                        bullet.destroy();
-                        break;
+                        bullet.destroy(); // Mark bullet for recycling by BulletManager
                     }
                 }
             }
         }
 
-        // 2. Evaluate Enemy Bullets vs Player (Core Hit vs Graze Hit) (Question 4)
-        for (Bullet bullet : bulletManager.getActiveEnemyBullets()) {
-            if (bullet.isDestroyed()) continue;
-
-            if (!player.isDestroyed()) {
-                // PRIORITY 1: Core Hit (Player was Shot)
-                if (bullet.getCoreHitbox().overlaps(player.getCoreHitbox())) {
-                    player.takeDamage(100, bulletManager, entities);
-                    bullet.destroy();
-                }
-                // PRIORITY 2: Graze Hit (Bullet Grazes Player)
-                else if (!bullet.hasBeenGrazed() && bullet.getCoreHitbox().overlaps(player.getGrazeHitbox())) {
-                    bullet.setGrazed(true);
-                    player.addGraze();
-                    System.out.println("[CollisionReferee] GRAZE! " + player.getName() + " grazed an enemy bullet (+50 pts)!");
-                }
-            }
-        }
-
-        // 3. Evaluate Player vs Items and Physical Enemy Contact (Question 5)
-        for (GameObject entity : entities) {
-            if (entity.isDestroyed()) continue;
-
-            // CASE A: Item Collection
-            if (entity instanceof Item item) {
-                if (item.getCoreHitbox().overlaps(player.getCoreHitbox()) || item.getCoreHitbox().overlaps(player.getGrazeHitbox())) {
-                    player.collectItem(item);
-                }
-            }
-            // CASE B: Physical Contact with Enemy
-            else if (entity instanceof Enemy enemy) {
-                if (player.getCoreHitbox().overlaps(enemy.getCoreHitbox())) {
-                    player.takeDamage(100, bulletManager, entities);                }
-            }
-        }
-
-        entities.addAll(newDrops);
-
-        for (Bullet bullet : bulletManager.getActiveEnemyBullets()) {
+        // 2. Mediator checks Enemy Bullets vs Player (Core Hitbox vs Graze Hitbox)
+        List<Bullet> currentEnemyBullets = new ArrayList<>(bulletManager.getActiveEnemyBullets());
+        for (Bullet bullet : currentEnemyBullets) {
             if (bullet.isDestroyed()) continue;
 
             if (!player.isDestroyed()) {
                 // Priority A: Direct Core Hitbox Collision (Damage & Life Loss)
                 if (bullet.getCoreHitbox().overlaps(player.getCoreHitbox())) {
-                    // TODO 1: Wrap the contents of this block with an `if (!player.isInvulnerable())` check,
                     if (!player.isInvulnerable()) {
                         System.out.println("[CollisionReferee] CORE HIT! Enemy Bullet hit " + player.getName() + " for " + bullet.getDamage() + " DMG!");
-                        // TODO 2: Replace `player.takeDamage(bullet.getDamage())` with `player.takeDamage(100, bulletManager, entities)`
                         bullet.destroy(); // Mark bullet for recycling by BulletManager
-                        // TODO 3: Add `break` at the end!
-                        break;
+                        player.takeDamage(100, bulletManager, entities);
+                        break; // Fatal hit wipes all active enemy bullets; break out of bullet loop for this frame!
                     }
-                }
+                } 
                 // Priority B: Graze Hitbox Collision (Passes close to player without hitting core)
                 else if (!bullet.hasBeenGrazed() && bullet.getCoreHitbox().overlaps(player.getGrazeHitbox())) {
                     bullet.setGrazed(true);
-                    // TODO 4: Replace player.addScore(50) with a call to the player's addGraze() method
+                    player.addGraze(); // Increments graze count, adds 50 pts, and notifies GameObserver HUD!
                     System.out.println("[CollisionReferee] GRAZE! " + player.getName() + " grazed an enemy bullet (+50 pts)!");
                 }
             }
@@ -100,16 +64,24 @@ public class CollisionReferee {
 
         // 3. Mediator checks Player vs Items and Enemies (Core vs Graze)
         for (GameObject entity : entities) {
-            // ... Item checking code from Module 7 remains the same ...
-        } else if (entity instanceof Enemy enemy) {
-            if (player.getCoreHitbox().overlaps(enemy.getCoreHitbox())) {
-                if (!player.isInvulnerable()){
-                // TODO 5: Wrap the contents of this block with `if (!player.isInvulnerable())`
-                System.out.println("[CollisionReferee] CORE COLLISION! Player collided with " + enemy.getName() + "!");
-                // TODO 6: Replace `player.takeDamage(10)` with `player.takeDamage(100, bulletManager, entities)`
+            if (entity.isDestroyed()) continue;
+
+            if (entity instanceof Item item) {
+                // Items collected via Core or Graze hitbox
+                if (player.getCoreHitbox().overlaps(item.getCoreHitbox()) || player.getGrazeHitbox().overlaps(item.getCoreHitbox())) {
+                    System.out.println("[CollisionReferee] Player collected item: " + item.getItemType());
+                    player.collectItem(item);
+                }
+            } else if (entity instanceof Enemy enemy) {
+                if (player.getCoreHitbox().overlaps(enemy.getCoreHitbox())) {
+                    if (!player.isInvulnerable()) {
+                        System.out.println("[CollisionReferee] CORE COLLISION! Player collided with " + enemy.getName() + "!");
+                        player.takeDamage(100, bulletManager, entities);
                     }
+                }
             }
         }
-    }
+
+        entities.addAll(newDrops);
     }
 }

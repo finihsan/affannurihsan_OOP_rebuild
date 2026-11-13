@@ -26,4 +26,3 @@ public class BombCommand implements Command {
         }
     }
 }
-

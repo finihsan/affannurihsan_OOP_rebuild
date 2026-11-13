@@ -11,4 +11,3 @@ public class ShootCommand implements Command {
         }
     }
 }
-

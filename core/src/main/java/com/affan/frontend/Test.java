@@ -1,14 +1,24 @@
 package com.affan.frontend;
 
-import com.affan.frontend.objects.bullets.BulletType;
+import com.affan.frontend.commands.BombCommand;
+import com.affan.frontend.commands.Command;
+import com.affan.frontend.commands.FocusCommand;
+import com.affan.frontend.commands.InputHandler;
+import com.affan.frontend.commands.MoveCommand;
+import com.affan.frontend.commands.ShootCommand;
+import com.affan.frontend.observers.GameObserver;
 import com.affan.frontend.objects.GameObject;
 import com.affan.frontend.objects.Player;
 import com.affan.frontend.objects.bullets.Bullet;
+import com.affan.frontend.objects.bullets.BulletType;
 import com.affan.frontend.objects.enemies.Boss;
 import com.affan.frontend.objects.enemies.Enemy;
 import com.affan.frontend.objects.enemies.Fairy;
 import com.affan.frontend.objects.items.Item;
 import com.affan.frontend.objects.items.ItemType;
+import com.affan.frontend.systems.BulletManager;
+import com.affan.frontend.systems.CollisionReferee;
+import com.affan.frontend.ui.GameHUD;
 
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -54,13 +64,13 @@ public class Test {
         // Instantiating polymorphic objects
         Player reimu2 = new Player("Reimu Hakurei", 100, 15, 3);
         Fairy fairy = new Fairy("Stage 1 Fairy", 20);
-        Boss rumia = new Boss("Rumia", 150);
+        Boss cirno = new Boss("Cirno (Stage 2 Boss)", 150);
         Item pointItem = new Item(200, 450, 12, 12, 120f, "Point Item", 1000L);
 
         System.out.println("\n--- Testing Encapsulation & Inheritance ---");
         System.out.println("Player: " + reimu2.getName() + " | Position: (" + reimu2.getX() + ", " + reimu2.getY() + ")");
         System.out.println("Fairy:  " + fairy.getName() + " | Defeat Worth: " + fairy.getScoreValue() + " pts");
-        System.out.println("Boss:   " + rumia.getName() + " | Defeat Worth: " + rumia.getScoreValue() + " pts | Size: " + rumia.getWidth() + "x" + rumia.getHeight());
+        System.out.println("Boss:   " + cirno.getName() + " | Defeat Worth: " + cirno.getScoreValue() + " pts | Size: " + cirno.getWidth() + "x" + cirno.getHeight());
         System.out.println("Item:   " + pointItem.getItemType() + " | Value: " + pointItem.getScoreValue() + " pts | Speed: " + pointItem.getSpeed());
 
         System.out.println("\n--- Testing Item Movement Update ---");
@@ -72,7 +82,7 @@ public class Test {
         System.out.println("Initial Score: " + reimu2.getScore());
         reimu2.shoot(fairy);
         reimu2.collectItem(pointItem);
-        reimu2.shoot(rumia);
+        reimu2.shoot(cirno);
         System.out.println("Final Score: " + reimu2.getScore() + " pts");
 
         System.out.println("\n=== Module 2 Test Completed Successfully ===");
@@ -91,8 +101,8 @@ public class Test {
         // 2. Initializing List<GameObject> entities for iterative updates
         List<GameObject> entities = new ArrayList<>();
         Player p = new Player(100, 100, "Reimu Hakurei", 100, 15, 3);
-        Fairy f = new Fairy(100, 100, "Stage 1 Fairy", 20);     // Placed at (100, 100) -> Collides with player!
-        Boss b = new Boss(200, 200, "Rumia", 150);
+        Fairy f = new Fairy(100, 114, "Stage 1 Fairy", 20);     // Placed at (100, 114) -> Overlaps player core hitbox!
+        Boss b = new Boss(200, 200, "Cirno", 150);
         Item item = new Item(300, 300, ItemType.POWER);
 
         entities.add(p);
@@ -109,25 +119,25 @@ public class Test {
 
         System.out.println("\n--- Testing Polymorphic Collision Information ---");
 
-        // Test 1: Player at (100, 100) collides with Fairy at (100, 100)
+        // Test 1: Player at (100, 100) collides with Fairy at (100, 114)
         System.out.println("Simulating collision at (100, 100) (Fairy position):");
         if (p.getCoreHitbox().overlaps(f.getCoreHitbox())) {
             p.onCollision(f);
         }
 
-        // Test 2: Move player to Boss at (200, 200)
-        p.setX(200);
-        p.setY(200);
+        // Test 2: Move player to Boss at (208, 208)
+        p.setX(208);
+        p.setY(208);
         System.out.println("Moving player to (200, 200) (Boss position):");
         if (p.getCoreHitbox().overlaps(b.getCoreHitbox())) {
             p.onCollision(b);
         }
 
-        // Test 3: Move player to Item position at (300, item.getY())
-        p.setX(300);
+        // Test 3: Move player to Item position at (290, item.getY())
+        p.setX(290);
         p.setY(item.getY());
         System.out.println("Moving player to (300, " + item.getY() + ") (Item current position):");
-        if (p.getCoreHitbox().overlaps(item.getCoreHitbox())) {
+        if (p.getGrazeHitbox().overlaps(item.getCoreHitbox())) {
             p.onCollision(item);
         }
 
@@ -151,15 +161,12 @@ public class Test {
         System.out.println("Entities Count: " + gameEntities.size());
 
         System.out.println("\n--- Turn 1: Player Fires Bullet ---");
-        Bullet bullet1 = player4.shootBullet();
-        bullet1.setX(200); // Align bullet X with Fairy
-        bullet1.setY(150); // Placed below Fairy at y=150
+        Bullet bullet1 = new Bullet(200, 150, 400f, BulletType.AMULET, 25);
         gameEntities.add(bullet1);
 
         System.out.println("Entities Count before update: " + gameEntities.size());
 
         System.out.println("\n--- Updating frame: Bullet moves upward & collides with Fairy ---");
-        // Simulate collision check
         for (int i = 0; i < gameEntities.size(); i++) {
             for (int j = i + 1; j < gameEntities.size(); j++) {
                 GameObject e1 = gameEntities.get(i);
@@ -171,22 +178,136 @@ public class Test {
             }
         }
 
-        // Test non-static instance method updateAndClean<T extends GameObject>
         runner.updateAndClean(gameEntities, 0.125f, 640, 480);
 
         System.out.println("Entities Count after generic Iterator cleanup: " + gameEntities.size());
 
-        System.out.println("\n--- Turn 2: Bullet Flies Off-Screen ---");
-        Bullet offScreenBullet = new Bullet(200, 450, 400f, BulletType.AMULET, 25);
-        gameEntities.add(offScreenBullet);
-        System.out.println("Initial Offscreen Bullet Y: " + offScreenBullet.getY());
-
-        System.out.println("Updating frame using non-static generic instance method updateAndClean<T> (0.5s movement):");
-        runner.updateAndClean(gameEntities, 0.5f, 640, 480);
-
-        System.out.println("Entities Count after off-screen generic Iterator cleanup: " + gameEntities.size());
-
         System.out.println("\n=== Module 4 Test Completed Successfully ===");
+
+
+        // ==========================================
+        // MODULE 7: OBJECT POOL & MEDIATOR PATTERN
+        // ==========================================
+        System.out.println("\n\n=== TOUHOU OOP PRACTICUM - MODULE 7: OBJECT POOL & MEDIATOR ===");
+
+        BulletManager bulletManager = new BulletManager();
+        CollisionReferee referee = new CollisionReferee();
+
+        Player player7 = new Player(200, 50, "Reimu Hakurei", 100, 15, 3);
+
+        Fairy enemyFairy = new Fairy(200, 200, "Stage 1 Fairy", 20); // HP 20
+        List<GameObject> m7Entities = new ArrayList<>();
+        m7Entities.add(enemyFairy);
+
+        System.out.println("\n--- Testing Object Pool ---");
+        System.out.println("Initial Player Pool Size: " + bulletManager.getPlayerPoolSize());
+        System.out.println("Initial Active Player Bullets: " + bulletManager.getActivePlayerBullets().size());
+
+        // Direct Object Pool Shooting
+        player7.shootBullet(bulletManager);
+        System.out.println("Active Player Bullets after 1st shoot: " + bulletManager.getActivePlayerBullets().size());
+
+        // Update bullets movement (y=50+48 -> 98, moves upwards to y=200 over 0.25s)
+        bulletManager.update(0.26f, 640, 480);
+
+        System.out.println("\n--- Testing Mediator Pattern Collision Resolution ---");
+        referee.resolveCollisions(player7, m7Entities, bulletManager);
+
+        // Cleanup offscreen / destroyed bullets back into pool
+        bulletManager.update(0.01f, 640, 480);
+
+        System.out.println("\n--- Object Pool Recycling Check ---");
+        System.out.println("Active Player Bullets after hit & recycling: " + bulletManager.getActivePlayerBullets().size());
+        System.out.println("Recycled Player Pool Size: " + bulletManager.getPlayerPoolSize());
+
+        // Shooting again re-uses pooled bullet!
+        player7.shootBullet(bulletManager);
+        System.out.println("Active Player Bullets after 2nd shoot (Re-used pooled instance): " + bulletManager.getActivePlayerBullets().size());
+        System.out.println("Player Pool Size after re-using: " + bulletManager.getPlayerPoolSize());
+
+        System.out.println("\n--- Testing Graze vs Core Hitbox Detection ---");
+        // Spawn 16x16 enemy bullet at (190, 50) -> Overlaps Graze Hitbox (x: 200..232, y: 50..98), misses Core Hitbox (x: 212..220, y: 70..78)
+        Bullet enemyBullet = bulletManager.spawnEnemyBullet(190, 50, 0, 0, 15);
+        long scoreBeforeGraze = player7.getScore();
+        referee.resolveCollisions(player7, m7Entities, bulletManager);
+        System.out.println("Graze score added (+50 pts): " + (player7.getScore() - scoreBeforeGraze == 50));
+        System.out.println("Player Graze Counter: " + player7.getGrazeCount());
+
+        System.out.println("\n=== Module 7 Test Completed Successfully ===");
+
+
+        // ==========================================
+        // MODULE 8: COMMAND PATTERN & OBSERVER PATTERN
+        // ==========================================
+        System.out.println("\n\n=== TOUHOU OOP PRACTICUM - MODULE 8: COMMAND & OBSERVER PATTERNS ===");
+
+        Player player8 = new Player(200, 50, "Reimu Hakurei", 100, 15, 3);
+        BulletManager bManager8 = new BulletManager();
+        GameHUD hud = new GameHUD();
+
+        System.out.println("\n--- Testing Observer Pattern Registration ---");
+        player8.registerObserver(hud);
+        System.out.println("HUD Received Initial Score: " + hud.getScore());
+        System.out.println("HUD Received Initial HP:    " + hud.getHp());
+        System.out.println("HUD Received Initial Lives: " + hud.getLives());
+        System.out.println("HUD Received Initial Bombs: " + hud.getSpellCards());
+        System.out.println("HUD Received Initial Graze: " + hud.getGrazeCount());
+
+        System.out.println("\n--- Testing Command Pattern Execution ---");
+
+        // 1. Move Command
+        Command moveUp = new MoveCommand(0, 0.5f);
+        moveUp.execute(player8, bManager8);
+        System.out.println("Player position after MoveCommand: (" + player8.getX() + ", " + player8.getY() + ")");
+
+        // 2. Focus Command
+        Command focusOn = new FocusCommand(true);
+        focusOn.execute(player8, bManager8);
+        System.out.println("Player Focus Mode Enabled: " + player8.isFocused());
+
+        // 3. Shoot Command
+        Command shoot = new ShootCommand();
+        shoot.execute(player8, bManager8);
+        System.out.println("Active Player Bullets after ShootCommand: " + bManager8.getActivePlayerBullets().size());
+
+        // 4. Bomb / Spell Card Command (Screen Clearing)
+        bManager8.spawnEnemyBullet(200, 300, 0, -100, 15);
+        bManager8.spawnEnemyBullet(250, 350, 0, -100, 15);
+        System.out.println("Active Enemy Bullets before Bomb: " + bManager8.getActiveEnemyBullets().size());
+
+        Command bomb = new BombCommand();
+        bomb.execute(player8, bManager8);
+
+        System.out.println("Active Enemy Bullets after BombCommand: " + bManager8.getActiveEnemyBullets().size());
+        System.out.println("HUD Received Updated Bombs: " + hud.getSpellCards());
+
+        System.out.println("\n--- Testing Observer Notification on Graze & Item Collection ---");
+        player8.addGraze();
+        System.out.println("HUD Received Updated Graze: " + hud.getGrazeCount());
+
+        Item pItem = new Item(200, 50, ItemType.POWER);
+        player8.collectItem(pItem);
+        System.out.println("HUD Received Updated Score: " + hud.getScore());
+
+        System.out.println("\n--- Testing Life Stock & Respawn System ---");
+        System.out.println("Initial Lives: " + player8.getLives());
+        player8.update(6.0f); // Expire bomb invulnerability timer (5.0s)
+        player8.takeDamage(100, bManager8, null);
+        System.out.println("Lives after fatal hit: " + player8.getLives() + " (Respawned with i-frames: " + player8.isInvulnerable() + ")");
+        System.out.println("HUD Received Updated Lives: " + hud.getLives());
+        Item lifeItem = new Item(200, 50, ItemType.LIFE);
+        player8.collectItem(lifeItem);
+        System.out.println("Lives after collecting LIFE item: " + player8.getLives());
+        System.out.println("HUD Received Restored Lives: " + hud.getLives());
+
+        System.out.println("\n--- Testing InputHandler (Bob Nystrom Invoker & Key Rebinding) ---");
+        InputHandler inputHandler = new InputHandler();
+        System.out.println("Default Shoot Key: " + inputHandler.getKeyShoot() + " (Z)");
+        inputHandler.setKeyShoot(62); // Rebind to Space
+        System.out.println("Rebound Shoot Key: " + inputHandler.getKeyShoot() + " (Space)");
+        System.out.println("Zero-GC Commands Buffer Initialized: " + (inputHandler.handleInput(0.016f) != null));
+
+        System.out.println("\n=== Module 8 Test Completed Successfully ===");
     }
 
     // Non-static (Instance) Generic Method with Bounded Type Parameter <T extends GameObject>

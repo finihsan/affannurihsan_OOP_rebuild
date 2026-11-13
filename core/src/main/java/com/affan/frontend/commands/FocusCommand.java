@@ -10,6 +10,14 @@ public class FocusCommand implements Command {
         this.focused = focused;
     }
 
+    public void setFocused(boolean focused) {
+        this.focused = focused;
+    }
+
+    public boolean isFocused() {
+        return focused;
+    }
+
     @Override
     public void execute(Player player, BulletManager bulletManager) {
         if (player != null) {
@@ -17,4 +25,3 @@ public class FocusCommand implements Command {
         }
     }
 }
-

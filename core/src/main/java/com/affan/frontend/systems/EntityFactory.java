@@ -54,7 +54,8 @@ public class EntityFactory {
     }
 
     public static Bullet createPlayerBullet(float x, float y, int damage, String spriteKey) {
-        TextureRegion sprite = AssetManager.getInstance().getTextureRegion(spriteKey);
+        String key = (spriteKey != null) ? spriteKey : "bullet_amulet";
+        TextureRegion sprite = AssetManager.getInstance().getTextureRegion(key);
         Bullet bullet = new Bullet(x, y, BulletType.AMULET, damage);
         bullet.setSprite(sprite);
         return bullet;
@@ -64,10 +65,16 @@ public class EntityFactory {
         return createPlayerBullet(x, y, damage, "bullet_amulet");
     }
 
-    public static Bullet createEnemyBullet(float x, float y, int damage) {
-        TextureRegion sprite = AssetManager.getInstance().getTextureRegion("bullet_danmaku");
+    public static Bullet createEnemyBullet(float x, float y, int damage, String spriteKey) {
+        String key = (spriteKey != null) ? spriteKey : "bullet_danmaku";
+        TextureRegion sprite = AssetManager.getInstance().getTextureRegion(key);
         Bullet bullet = new Bullet(x, y, 0f, BulletType.DANMAKU, damage);
         bullet.setSprite(sprite);
         return bullet;
+    }
+
+
+    public static Bullet createEnemyBullet(float x, float y, int damage) {
+        return createEnemyBullet(x, y, damage, "bullet_danmaku");
     }
 }
